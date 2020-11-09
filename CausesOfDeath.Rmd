@@ -1,0 +1,227 @@
+---
+title: "How does COVID-19 compare to other causes of death in the UK?"
+output:
+  html_document:
+    df_print: paged
+---
+
+For this R Notebook you'll need the following packages:
+
+```{r}
+library(readxl)
+library(viridis)
+library(vioplot)
+```
+
+```{r}
+options("scipen"=100, "digits"=4)
+```
+
+```{r}
+uk <- read_excel(path = "CausesOfDeath.xlsx", sheet = "UK")
+uk
+```
+
+```{r}
+all.deaths.2018 <-  614690
+covid.death.rate <- uk[nrow(uk),4]
+guesstimated.covid.deaths <- unlist(all.deaths.2018 * covid.death.rate)
+names(guesstimated.covid.deaths) <- "Guesstimated COVID-19 deaths"
+additional.covid.deaths <- unlist(guesstimated.covid.deaths-uk[nrow(uk),3])
+names(additional.covid.deaths) <- "Additional COVID-19 deaths"
+additional.covid.deaths
+guesstimated.covid.deaths
+```
+
+```{r}
+number.of.deaths <- matrix(data = c(uk$`Number of deaths`,c(rep(x = 0, times = nrow(uk)-1),additional.covid.deaths)), nrow = 2, byrow = TRUE)
+colnames(number.of.deaths) <- uk$`Cause of death`
+colnames(number.of.deaths)[3:4] <- c("Dementia","Sepsis*")
+number.of.deaths
+```
+
+```{r}
+space <- c(rep(x = 0.2, times = nrow(uk)-1),0.5)
+bp <- barplot(height = number.of.deaths, space = space, plot = FALSE)
+pal <- inferno(n = 2, begin = 0.2, end = 0.7)
+col <- pal[1]
+y.num <- seq(0,200000,50000)
+ylim.num <- range(y.num)
+y.labels <- prettyNum(x = y.num, big.mark = ",", )
+y.labels[3] <- "100,000"
+y.labels[5] <- "200,000"
+x.labels <- colnames(number.of.deaths)
+x.labels[1] <- "Cardiovascular\ndisease"
+x.labels[6] <- "Alcohol and\ndrug-related"
+x.labels[8] <- "Road traffic\naccidents"
+v <- mean(x = bp[8:9])
+text.lab.num <- prettyNum(x = number.of.deaths[1,], big.mark = ",")
+text.lab.num[length(text.lab.num)] <- ""
+text.lab.num.covid <- c(number.of.deaths[1,ncol(number.of.deaths)],guesstimated.covid.deaths)
+text.lab.num.covid.lab <- prettyNum(x = round(x = c(number.of.deaths[1,ncol(number.of.deaths)],guesstimated.covid.deaths), digits = 0), big.mark = ",")
+text.lab.num.covid.lab[2] <- paste0("(",text.lab.num.covid.lab[2],")")
+superscript <- expression(bold(paste("2020"^"†", sep = "")))
+footnotes <- "* Annual data unavailable\n† Up to and including the week ending 02/10"
+```
+
+
+```{r}
+par(mar = c(9,5,5,2))
+barplot(height = number.of.deaths, space = space, col = col, density = c(100,50), border = col, axes = FALSE, las = 2, names.arg = x.labels, ylim = ylim.num)
+# axis(side = 1, at = bp, labels = x.labels, tick = FALSE, lty = 0, las = 2)
+axis(side = 2, at = y.num, labels = y.labels, las = 1, lwd = 2, lwd.ticks = 2)
+mtext(text = "Number of deaths", side = 3, at = 0, line = 1, font = 2)
+mtext(text = "Cause of death", side = 1, line = 7, font = 2)
+mtext(text = "How does COVID-19 compare to other U.K. causes of death?", side = 3, line = 3, font = 2, cex = 1.2)
+text(x = bp, y = number.of.deaths[1,1:ncol(number.of.deaths)]+14000, labels = text.lab.num, xpd = TRUE, cex = 0.85)
+text(x = bp[length(bp)], y = text.lab.num.covid+35000, labels = text.lab.num.covid.lab, xpd = TRUE, cex = 0.85)
+lines(x = c(v,v), y = c(-10000,215000), lwd = 2, lty = 2, col = "grey40", xpd = TRUE)
+mtext(text = "2018", side = 3, line = 0, at = v/2, cex = 1., font = 2)
+mtext(text = superscript, side = 3, line = 0, at = bp[length(bp)]+0.1, cex = 1, font = 2)
+mtext(text = footnotes, side = 1, line = 7, at = bp[length(bp)]+1, xpd = TRUE, cex = 0.6, adj = 1)
+```
+
+```{r}
+ylim <- c(0,0.3)
+y.rate <- seq(0,30,10)
+text.lab.rate <- round(x = uk$`Percentage of total deaths`*100, digits = 1)
+text.lab.rate <- paste0(text.lab.rate,"%")
+```
+
+
+```{r}
+par(mar = c(9,5,5,2))
+bp <- barplot(height = uk$`Percentage of total deaths`, space = space, col = col, border = col, axes = FALSE, las = 2, names.arg = x.labels, ylim = ylim)
+axis(side = 2, at = y.rate/100, labels = y.rate, las = 1, lwd = 2, lwd.ticks = 2)
+mtext(text = "Proportion of deaths (%)", side = 3, at = 0.7, line = 1, font = 2)
+mtext(text = "Cause of death", side = 1, line = 7, font = 2)
+mtext(text = "How does COVID-19 compare to other U.K. causes of death?", side = 3, line = 3, font = 2, cex = 1.2)
+lines(x = c(v,v), y = c(-0.01,0.34), lwd = 2, lty = 2, col = "grey40", xpd = TRUE)
+text(x = bp, y = uk$`Percentage of total deaths`+0.03, labels = text.lab.rate, xpd = TRUE, cex = 0.85, adj = 0.44)
+mtext(text = "2018", side = 3, line = 0, at = v/2, cex = 1., font = 2)
+mtext(text = superscript, side = 3, line = 0, at = bp[length(bp)]+0.1, cex = 1, font = 2)
+mtext(text = footnotes, side = 1, line = 7, at = bp[length(bp)]+1, xpd = TRUE, cex = 0.6, adj = 1)
+```
+
+Finally, let's look at the difference in the number of deaths in 2020.
+
+```{r}
+weekly <- read_excel(path = "CausesOfDeath.xlsx", sheet = "Weekly deaths")
+weekly
+```
+
+```{r}
+total.deaths.2020 <- sum(weekly$`Estimated total death occurrences`[1:39])
+total.deaths.ave <- sum(weekly$`Average occurrences in previous 5 years`[1:39])
+excess.deaths <- total.deaths.2020-total.deaths.ave
+deaths.2020 <- c(total.deaths.ave, total.deaths.2020)
+deaths.2020
+```
+
+```{r}
+x <- weekly$`Week number`[1:39]
+y <- weekly$`Estimated total death occurrences`[1:39]
+y.upper <- weekly$`Upper 95% confidence interval of estimate`[1:39]
+y.lower <- weekly$`Lower 95% confidence interval of estimate`[1:39]
+xx = c(x, rev(x))
+yy = c(y.upper, rev(y.lower))
+y.average <- weekly$`Average occurrences in previous 5 years`[1:39]
+```
+
+```{r}
+y.num <- seq(10000, 22000, 4000)
+y.labels <- prettyNum(x = y.num, big.mark = ",")
+pal2 <- inferno(n = 2, alpha = 0.5, begin = 0.2, end = 0.8)
+col2 <- pal2[1]
+```
+
+```{r}
+range(y.average)
+range(y)
+```
+
+
+```{r}
+par(mar = c(4,5,5,2))
+boxplot(x = cbind(y.average,y), border = "white", axes = FALSE)
+vioplot(x = cbind(y.average,y), lineCol = col, col = col2, rectCol = col, border = col, lwd = 2, add = TRUE, axes = FALSE)
+stripchart(x = data.frame(y.average,y), vertical = TRUE, add = TRUE, method = "jitter", jitter = 0.2, pch = 1, col = col, lwd = 2)
+axis(side = 1, at = 1:2, labels = c("5-year average","2020"), tick = FALSE, line = FALSE, padj = -1)
+mtext(text = "Weekly deaths", side = 1, line = 2, font = 2)
+axis(side = 2, at = y.num, labels = y.labels, las = 2, lwd = 2)
+mtext(text = "Number of deaths", side = 3, line = 1, font = 2, at = 0, adj = -0.4)
+mtext(text = "Are the number of deaths in 2020 higher than normal?", side = 3, line = 3, font = 2, cex = 1.2)
+```
+
+```{r}
+flu <- read_excel(path = "CausesOfDeath.xlsx", sheet = "Annual flu deaths")
+flu
+```
+
+```{r}
+flu.ma <- as.matrix(t(flu[,2]))
+```
+
+```{r}
+covid.deaths <- uk[nrow(uk),3]
+flu.death.diff <- unlist(sapply(X = flu.ma[1,], FUN = function(X) covid.deaths-X))
+names(flu.death.diff) <- 2001:2018
+flu.death.diff
+range(flu.death.diff)
+```
+
+
+```{r}
+bp <- barplot(height = flu.ma, plot = FALSE)
+y.num <- seq(0,70000,10000)
+y.labels <- prettyNum(x = y.num, big.mark = ",")
+```
+
+
+```{r}
+par(mar = c(6,5,5,2))
+barplot(height = flu.ma, col = col, border = col, density = c(100,50), axes = FALSE, ylim = range(y.num))
+axis(side = 1, at = bp, labels = flu$Year, las = 2, tick = FALSE, line = FALSE)
+axis(side = 2, at = y.num, labels = y.labels, las = 1, lwd = 2)
+# abline(h = uk[nrow(uk),3], lwd = 2, lty = 2)
+lines(x = c(0,bp[length(bp)]+0.8), y = c(uk[nrow(uk),3],uk[nrow(uk),3]), lwd = 2, lty = 2, col = "grey40")
+mtext(text = "Number of deaths", side = 3, line = 1, font = 2, at = 0)
+mtext(text = "Year", side = 1, line = 4, font = 2)
+mtext(text = "How many people die of influenza and pneumonia annually?", side = 3, line = 3, font = 2, cex = 1.2)
+text(x = bp[length(bp)], y = 60000, labels = "2020 COVID-19 deaths*", adj = c(0.9,0), cex = 0.8)
+# text(x = bp[length(bp)], y = -26000, labels = "* Up to and including the week ending 02/10", adj = c(0.95,0), cex = 0.6, xpd = TRUE)
+mtext(text = "* Up to and including the week ending 02/10", side = 1, line = 4, at = bp[length(bp)]+1, xpd = TRUE, cex = 0.6, adj = 1.1)
+```
+
+```{r}
+flu.ma <- as.matrix(t(flu[,5]))
+```
+
+```{r}
+range(flu.ma)*100
+```
+
+
+```{r}
+bp <- barplot(height = flu.ma, plot = FALSE)
+y.num <- seq(0,0.15,0.05)
+y.labels <- prettyNum(x = y.num * 100, big.mark = ",")
+```
+
+
+```{r}
+par(mar = c(6,5,5,2))
+barplot(height = flu.ma, col = col, border = col, density = c(100,50), axes = FALSE, ylim = range(y.num))
+axis(side = 1, at = bp, labels = flu$Year, las = 2, tick = FALSE, line = FALSE)
+axis(side = 2, at = y.num, labels = y.labels, las = 1, lwd = 2)
+# abline(h = uk[nrow(uk),3], lwd = 2, lty = 2)
+lines(x = c(0,bp[length(bp)]+0.8), y = rep(covid.death.rate,2), lwd = 2, lty = 2, col = "grey40")
+mtext(text = "Proportion of deaths (%)", side = 3, line = 1, font = 2, at = 0.7)
+mtext(text = "Year", side = 1, line = 4, font = 2)
+mtext(text = "How many people die of influenza and pneumonia annually?", side = 3, line = 3, font = 2, cex = 1.2)
+text(x = bp[length(bp)], y = covid.death.rate+0.005, labels = "2020 COVID-19 deaths*", adj = c(0.9,0), cex = 0.8)
+# text(x = bp[length(bp)], y = -26000, labels = "* Up to and including the week ending 02/10", adj = c(0.95,0), cex = 0.6, xpd = TRUE)
+mtext(text = "* Up to and including the week ending 02/10", side = 1, line = 4, at = bp[length(bp)]+1, xpd = TRUE, cex = 0.6, adj = 1.1)
+```
+
+
